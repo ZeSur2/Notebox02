@@ -33,358 +33,308 @@ jobs:
 
           # 1. Note.kt
           cat << 'EOF' > app/src/main/java/com/notebox/data/Note.kt
-package com.notebox.data
-import androidx.compose.runtime.Immutable
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-@Immutable
-@Entity(tableName = "notes")
-data class Note(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val title: String = "",
-    val content: String = "",
-    val folder: String = "Inbox",
-    val imagePath: String? = null,
-    val customBgColor: Long? = null,
-    val customTextColor: Long? = null,
-    val widgetFontScale: Float = 1.0f,
-    val pinned: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
-)
-EOF
+            package com.notebox.data
+            import androidx.compose.runtime.Immutable
+            import androidx.room.Entity
+            import androidx.room.PrimaryKey
+            @Immutable
+            @Entity(tableName = "notes")
+            data class Note(
+                @PrimaryKey(autoGenerate = true) val id: Long = 0,
+                val title: String = "",
+                val content: String = "",
+                val folder: String = "Inbox",
+                val imagePath: String? = null,
+                val customBgColor: Long? = null,
+                val customTextColor: Long? = null,
+                val widgetFontScale: Float = 1.0f,
+                val pinned: Boolean = false,
+                val createdAt: Long = System.currentTimeMillis(),
+                val updatedAt: Long = System.currentTimeMillis()
+            )
+          EOF
 
           # 2. NoteDao.kt
           cat << 'EOF' > app/src/main/java/com/notebox/data/NoteDao.kt
-package com.notebox.data
-import androidx.room.*
-import kotlinx.coroutines.flow.Flow
-@Dao
-interface NoteDao {
-    @Query("SELECT * FROM notes ORDER BY updatedAt DESC")
-    fun observeAll(): Flow<List<Note>>
-    @Query("SELECT * FROM notes ORDER BY pinned DESC, updatedAt DESC")
-    suspend fun observeAllSnapshot(): List<Note>
-    @Query("SELECT * FROM notes WHERE pinned = 1 ORDER BY updatedAt DESC LIMIT 1")
-    suspend fun getPinned(): Note?
-    @Query("SELECT * FROM notes ORDER BY updatedAt DESC LIMIT 1")
-    suspend fun getLatest(): Note?
-    @Query("SELECT * FROM notes WHERE id = :id")
-    suspend fun getById(id: Long): Note?
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(note: Note): Long
-    @Delete
-    suspend fun delete(note: Note)
-}
-EOF
+            package com.notebox.data
+            import androidx.room.*
+            import kotlinx.coroutines.flow.Flow
+            @Dao
+            interface NoteDao {
+                @Query("SELECT * FROM notes ORDER BY updatedAt DESC")
+                fun observeAll(): Flow<List<Note>>
+                @Query("SELECT * FROM notes ORDER BY pinned DESC, updatedAt DESC")
+                suspend fun observeAllSnapshot(): List<Note>
+                @Query("SELECT * FROM notes WHERE pinned = 1 ORDER BY updatedAt DESC LIMIT 1")
+                suspend fun getPinned(): Note?
+                @Query("SELECT * FROM notes ORDER BY updatedAt DESC LIMIT 1")
+                suspend fun getLatest(): Note?
+                @Query("SELECT * FROM notes WHERE id = :id")
+                suspend fun getById(id: Long): Note?
+                @Insert(onConflict = OnConflictStrategy.REPLACE)
+                suspend fun upsert(note: Note): Long
+                @Delete
+                suspend fun delete(note: Note)
+            }
+          EOF
 
           # 3. ThemeMode.kt
           cat << 'EOF' > app/src/main/java/com/notebox/ui/theme/ThemeMode.kt
-package com.notebox.ui.theme
-enum class ThemeMode { STANDARD, OLED, FADE }
-EOF
+            package com.notebox.ui.theme
+            enum class ThemeMode { STANDARD, OLED, FADE }
+          EOF
 
           # 4. Theme.kt
           cat << 'EOF' > app/src/main/java/com/notebox/ui/theme/Theme.kt
-package com.notebox.ui.theme
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-val TerminalGreen = Color(0xFFA6E22E)
-val TerminalCyan = Color(0xFF66D9EF)
-val TerminalComment = Color(0xFF75715E)
-private val DarkColors = darkColorScheme(
-    background = Color(0xFF272822), surface = Color(0xFF1E1F1C),
-    onBackground = Color(0xFFF8F8F2), onSurface = Color(0xFFF8F8F2),
-    primary = TerminalGreen, secondary = TerminalCyan
-)
-private val OledColors = darkColorScheme(
-    background = Color(0xFF000000), surface = Color(0xFF0A0A0A),
-    onBackground = Color(0xFFFFFFFF), onSurface = Color(0xFFEDEDED),
-    surfaceVariant = Color(0xFF151515), primary = Color(0xFF7CFF6B),
-    secondary = Color(0xFF5DDFFF), outline = Color(0xFF2A2A2A)
-)
-private val FadeColors = darkColorScheme(
-    background = Color(0xFF1E1E2E), surface = Color(0xFF252538),
-    onBackground = Color(0xFFCDD6F4), onSurface = Color(0xFFCDD6F4),
-    surfaceVariant = Color(0xFF313244), primary = Color(0xFFB4BEFE),
-    secondary = Color(0xFF89DCEB), outline = Color(0xFF45475A)
-)
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF2E7D32), secondary = Color(0xFF00695C)
-)
-private val Mono = FontFamily.Monospace
-private val AppTypography = Typography(
-    bodyLarge = TextStyle(fontFamily = Mono, fontSize = 15.sp, lineHeight = 22.sp),
-    bodyMedium = TextStyle(fontFamily = Mono, fontSize = 13.sp, lineHeight = 19.sp),
-    titleLarge = TextStyle(fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 20.sp),
-    labelSmall = TextStyle(fontFamily = Mono, fontSize = 11.sp, color = TerminalComment)
-)
-@Composable
-fun NoteBoxTheme(mode: ThemeMode = ThemeMode.STANDARD, dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val scheme = when {
-        !dark -> LightColors
-        mode == ThemeMode.OLED -> OledColors
-        mode == ThemeMode.FADE -> FadeColors
-        else -> DarkColors
-    }
-    MaterialTheme(colorScheme = scheme, typography = AppTypography, content = content)
-}
-EOF
+            package com.notebox.ui.theme
+            import androidx.compose.foundation.isSystemInDarkTheme
+            import androidx.compose.material3.*
+            import androidx.compose.runtime.Composable
+            import androidx.compose.ui.graphics.Color
+            import androidx.compose.ui.text.TextStyle
+            import androidx.compose.ui.text.font.FontFamily
+            import androidx.compose.ui.text.font.FontWeight
+            import androidx.compose.ui.unit.sp
+            val TerminalGreen = Color(0xFFA6E22E)
+            val TerminalCyan = Color(0xFF66D9EF)
+            val TerminalComment = Color(0xFF75715E)
+            private val DarkColors = darkColorScheme(
+                background = Color(0xFF272822), surface = Color(0xFF1E1F1C),
+                onBackground = Color(0xFFF8F8F2), onSurface = Color(0xFFF8F8F2),
+                primary = TerminalGreen, secondary = TerminalCyan
+            )
+            private val OledColors = darkColorScheme(
+                background = Color(0xFF000000), surface = Color(0xFF0A0A0A),
+                onBackground = Color(0xFFFFFFFF), onSurface = Color(0xFFEDEDED),
+                surfaceVariant = Color(0xFF151515), primary = Color(0xFF7CFF6B),
+                secondary = Color(0xFF5DDFFF), outline = Color(0xFF2A2A2A)
+            )
+            private val FadeColors = darkColorScheme(
+                background = Color(0xFF1E1E2E), surface = Color(0xFF252538),
+                onBackground = Color(0xFFCDD6F4), onSurface = Color(0xFFCDD6F4),
+                surfaceVariant = Color(0xFF313244), primary = Color(0xFFB4BEFE),
+                secondary = Color(0xFF89DCEB), outline = Color(0xFF45475A)
+            )
+            private val LightColors = lightColorScheme(
+                primary = Color(0xFF2E7D32), secondary = Color(0xFF00695C)
+            )
+            private val Mono = FontFamily.Monospace
+            private val AppTypography = Typography(
+                bodyLarge = TextStyle(fontFamily = Mono, fontSize = 15.sp, lineHeight = 22.sp),
+                bodyMedium = TextStyle(fontFamily = Mono, fontSize = 13.sp, lineHeight = 19.sp),
+                titleLarge = TextStyle(fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                labelSmall = TextStyle(fontFamily = Mono, fontSize = 11.sp, color = TerminalComment)
+            )
+            @Composable
+            fun NoteBoxTheme(mode: ThemeMode = ThemeMode.STANDARD, dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+                val scheme = when {
+                    !dark -> LightColors
+                    mode == ThemeMode.OLED -> OledColors
+                    mode == ThemeMode.FADE -> FadeColors
+                    else -> DarkColors
+                }
+                MaterialTheme(colorScheme = scheme, typography = AppTypography, content = content)
+            }
+          EOF
 
           # 5. Prefs.kt
           cat << 'EOF' > app/src/main/java/com/notebox/data/Prefs.kt
-package com.notebox.data
-import android.content.Context
-import androidx.datastore.preferences.core.*
-import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.first
-private val Context.dataStore by preferencesDataStore("notebox_prefs")
-object Prefs {
-    private val DEFAULT_BG = longPreferencesKey("default_bg")
-    private val DEFAULT_TEXT = longPreferencesKey("default_text")
-    private val THEME_MODE = stringPreferencesKey("theme_mode")
-    suspend fun getDefaultBg(ctx: Context): Long = ctx.dataStore.data.first()[DEFAULT_BG] ?: 0xFF272822
-    suspend fun getDefaultText(ctx: Context): Long = ctx.dataStore.data.first()[DEFAULT_TEXT] ?: 0xFFF8F8F2
-    suspend fun setDefaultBg(ctx: Context, color: Long) { ctx.dataStore.edit { it[DEFAULT_BG] = color } }
-    suspend fun setDefaultText(ctx: Context, color: Long) { ctx.dataStore.edit { it[DEFAULT_TEXT] = color } }
-    suspend fun getThemeMode(ctx: Context): com.notebox.ui.theme.ThemeMode {
-        val v = ctx.dataStore.data.first()[THEME_MODE] ?: "STANDARD"
-        return runCatching { com.notebox.ui.theme.ThemeMode.valueOf(v) }.getOrDefault(com.notebox.ui.theme.ThemeMode.STANDARD)
-    }
-    suspend fun setThemeMode(ctx: Context, mode: com.notebox.ui.theme.ThemeMode) { ctx.dataStore.edit { it[THEME_MODE] = mode.name } }
-    private fun folderBg(f: String) = longPreferencesKey("folder_bg_\$f")
-    private fun folderText(f: String) = longPreferencesKey("folder_text_\$f")
-    suspend fun getFolderBg(ctx: Context, folder: String): Long? = ctx.dataStore.data.first()[folderBg(folder)]
-    suspend fun getFolderText(ctx: Context, folder: String): Long? = ctx.dataStore.data.first()[folderText(folder)]
-    suspend fun setFolderColors(ctx: Context, folder: String, bg: Long?, text: Long?) {
-        ctx.dataStore.edit {
-            if (bg != null) it[folderBg(folder)] = bg else it.remove(folderBg(folder))
-            if (text != null) it[folderText(folder)] = text else it.remove(folderText(folder))
-        }
-    }
-    private val WEBDAV_URL = stringPreferencesKey("webdav_url")
-    private val WEBDAV_USER = stringPreferencesKey("webdav_user")
-    private val WEBDAV_PASS = stringPreferencesKey("webdav_pass")
-    data class WebDav(val url: String, val user: String, val pass: String)
-    suspend fun getWebDav(ctx: Context): WebDav {
-        val p = ctx.dataStore.data.first()
-        return WebDav(p[WEBDAV_URL] ?: "", p[WEBDAV_USER] ?: "", p[WEBDAV_PASS] ?: "")
-    }
-    suspend fun setWebDav(ctx: Context, url: String, user: String, pass: String) {
-        ctx.dataStore.edit { it[WEBDAV_URL] = url; it[WEBDAV_USER] = user; it[WEBDAV_PASS] = pass }
-    }
-}
-EOF
+            package com.notebox.data
+            import android.content.Context
+            import androidx.datastore.preferences.core.*
+            import androidx.datastore.preferences.preferencesDataStore
+            import kotlinx.coroutines.flow.first
+            private val Context.dataStore by preferencesDataStore("notebox_prefs")
+            object Prefs {
+                private val DEFAULT_BG = longPreferencesKey("default_bg")
+                private val DEFAULT_TEXT = longPreferencesKey("default_text")
+                private val THEME_MODE = stringPreferencesKey("theme_mode")
+                suspend fun getDefaultBg(ctx: Context): Long = ctx.dataStore.data.first()[DEFAULT_BG] ?: 0xFF272822
+                suspend fun getDefaultText(ctx: Context): Long = ctx.dataStore.data.first()[DEFAULT_TEXT] ?: 0xFFF8F8F2
+                suspend fun setDefaultBg(ctx: Context, color: Long) { ctx.dataStore.edit { it[DEFAULT_BG] = color } }
+                suspend fun setDefaultText(ctx: Context, color: Long) { ctx.dataStore.edit { it[DEFAULT_TEXT] = color } }
+                suspend fun getThemeMode(ctx: Context): com.notebox.ui.theme.ThemeMode {
+                    val v = ctx.dataStore.data.first()[THEME_MODE] ?: "STANDARD"
+                    return runCatching { com.notebox.ui.theme.ThemeMode.valueOf(v) }.getOrDefault(com.notebox.ui.theme.ThemeMode.STANDARD)
+                }
+                suspend fun setThemeMode(ctx: Context, mode: com.notebox.ui.theme.ThemeMode) { ctx.dataStore.edit { it[THEME_MODE] = mode.name } }
+                private fun folderBg(f: String) = longPreferencesKey("folder_bg_${f}")
+                private fun folderText(f: String) = longPreferencesKey("folder_text_${f}")
+                suspend fun getFolderBg(ctx: Context, folder: String): Long? = ctx.dataStore.data.first()[folderBg(folder)]
+                suspend fun getFolderText(ctx: Context, folder: String): Long? = ctx.dataStore.data.first()[folderText(folder)]
+                suspend fun setFolderColors(ctx: Context, folder: String, bg: Long?, text: Long?) {
+                    ctx.dataStore.edit {
+                        if (bg != null) it[folderBg(folder)] = bg else it.remove(folderBg(folder))
+                        if (text != null) it[folderText(folder)] = text else it.remove(folderText(folder))
+                    }
+                }
+                private val WEBDAV_URL = stringPreferencesKey("webdav_url")
+                private val WEBDAV_USER = stringPreferencesKey("webdav_user")
+                private val WEBDAV_PASS = stringPreferencesKey("webdav_pass")
+                data class WebDav(val url: String, val user: String, val pass: String)
+                suspend fun getWebDav(ctx: Context): WebDav {
+                    val p = ctx.dataStore.data.first()
+                    return WebDav(p[WEBDAV_URL] ?: "", p[WEBDAV_USER] ?: "", p[WEBDAV_PASS] ?: "")
+                }
+                suspend fun setWebDav(ctx: Context, url: String, user: String, pass: String) {
+                    ctx.dataStore.edit { it[WEBDAV_URL] = url; it[WEBDAV_USER] = user; it[WEBDAV_PASS] = pass }
+                }
+            }
+          EOF
 
           # 6. MainActivity.kt
           cat << 'EOF' > app/src/main/java/com/notebox/MainActivity.kt
-package com.notebox
-import android.app.Application
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.viewModels
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import androidx.compose.runtime.*
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.lifecycleScope
-import com.notebox.data.Note
-import com.notebox.data.NoteDatabase
-import com.notebox.data.Prefs
-import com.notebox.ui.NoteEditScreen
-import com.notebox.ui.NoteListScreen
-import com.notebox.ui.SettingsScreen
-import com.notebox.ui.theme.NoteBoxTheme
-import com.notebox.ui.theme.ThemeMode
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-sealed class Screen {
-    object List : Screen()
-    data class Edit(val note: Note?) : Screen()
-    object Settings : Screen()
-}
-class NoteViewModel(app: Application) : AndroidViewModel(app) {
-    private val dao = NoteDatabase.get(app).noteDao()
-    val notes = dao.observeAll().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    fun save(note: Note) = viewModelScope.launch { dao.upsert(note) }
-    fun delete(note: Note) = viewModelScope.launch { dao.delete(note) }
-}
-class MainActivity : ComponentActivity() {
-    private val vm: NoteViewModel by viewModels()
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            var themeMode by remember { mutableStateOf(ThemeMode.STANDARD) }
-            LaunchedEffect(Unit) { themeMode = Prefs.getThemeMode(this@MainActivity) }
-            NoteBoxTheme(mode = themeMode) {
-                val notes by vm.notes.collectAsStateWithLifecycle()
-                var screen by remember { mutableStateOf<Screen>(Screen.List) }
-                AnimatedContent(
-                    targetState = screen,
-                    transitionSpec = {
-                        val dur = 280
-                        when {
-                            targetState is Screen.Edit && initialState is Screen.List ->
-                                (slideInHorizontally(tween(dur)) { it } + fadeIn(tween(dur))) togetherWith (slideOutHorizontally(tween(dur)) { -it / 3 } + fadeOut(tween(dur)))
-                            targetState is Screen.List && initialState is Screen.Edit ->
-                                (slideInHorizontally(tween(dur)) { -it / 3 } + fadeIn(tween(dur))) togetherWith (slideOutHorizontally(tween(dur)) { it } + fadeOut(tween(dur)))
-                            else -> fadeIn(tween(dur)) togetherWith fadeOut(tween(dur))
+            package com.notebox
+            import android.app.Application
+            import android.os.Bundle
+            import androidx.activity.ComponentActivity
+            import androidx.activity.compose.setContent
+            import androidx.activity.viewModels
+            import androidx.compose.animation.*
+            import androidx.compose.animation.core.tween
+            import androidx.compose.runtime.*
+            import androidx.lifecycle.AndroidViewModel
+            import androidx.lifecycle.compose.collectAsStateWithLifecycle
+            import androidx.lifecycle.viewModelScope
+            import androidx.lifecycle.lifecycleScope
+            import com.notebox.data.Note
+            import com.notebox.data.NoteDatabase
+            import com.notebox.data.Prefs
+            import com.notebox.ui.NoteEditScreen
+            import com.notebox.ui.NoteListScreen
+            import com.notebox.ui.SettingsScreen
+            import com.notebox.ui.theme.NoteBoxTheme
+            import com.notebox.ui.theme.ThemeMode
+            import kotlinx.coroutines.flow.SharingStarted
+            import kotlinx.coroutines.flow.stateIn
+            import kotlinx.coroutines.launch
+            sealed class Screen {
+                object List : Screen()
+                data class Edit(val note: Note?) : Screen()
+                object Settings : Screen()
+            }
+            class NoteViewModel(app: Application) : AndroidViewModel(app) {
+                private val dao = NoteDatabase.get(app).noteDao()
+                val notes = dao.observeAll().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+                fun save(note: Note) = viewModelScope.launch { dao.upsert(note) }
+                fun delete(note: Note) = viewModelScope.launch { dao.delete(note) }
+            }
+            class MainActivity : ComponentActivity() {
+                private val vm: NoteViewModel by viewModels()
+                override fun onCreate(savedInstanceState: Bundle?) {
+                    super.onCreate(savedInstanceState)
+                    setContent {
+                        var themeMode by remember { mutableStateOf(ThemeMode.STANDARD) }
+                        LaunchedEffect(Unit) { themeMode = Prefs.getThemeMode(this@MainActivity) }
+                        NoteBoxTheme(mode = themeMode) {
+                            val notes by vm.notes.collectAsStateWithLifecycle()
+                            var screen by remember { mutableStateOf<Screen>(Screen.List) }
+                            AnimatedContent(
+                                targetState = screen,
+                                transitionSpec = {
+                                    val dur = 280
+                                    when {
+                                        targetState is Screen.Edit && initialState is Screen.List ->
+                                            (slideInHorizontally(tween(dur)) { it } + fadeIn(tween(dur))) togetherWith (slideOutHorizontally(tween(dur)) { -it / 3 } + fadeOut(tween(dur)))
+                                        targetState is Screen.List && initialState is Screen.Edit ->
+                                            (slideInHorizontally(tween(dur)) { -it / 3 } + fadeIn(tween(dur))) togetherWith (slideOutHorizontally(tween(dur)) { it } + fadeOut(tween(dur)))
+                                        else -> fadeIn(tween(dur)) togetherWith fadeOut(tween(dur))
+                                    }
+                                },
+                                label = "screen"
+                            ) { s ->
+                                when (s) {
+                                    is Screen.List -> NoteListScreen(notes = notes, onNoteClick = { screen = Screen.Edit(it) }, onNewNote = { screen = Screen.Edit(null) }, onSettings = { screen = Screen.Settings })
+                                    is Screen.Edit -> NoteEditScreen(initial = s.note, onSave = { vm.save(it) }, onDelete = { vm.delete(it) }, onBack = { screen = Screen.List })
+                                    is Screen.Settings -> SettingsScreen(onBack = { screen = Screen.List }, currentMode = themeMode, onModeChange = { themeMode = it; lifecycleScope.launch { Prefs.setThemeMode(this@MainActivity, it) } })
+                                }
+                            }
                         }
-                    },
-                    label = "screen"
-                ) { s ->
-                    when (s) {
-                        is Screen.List -> NoteListScreen(notes = notes, onNoteClick = { screen = Screen.Edit(it) }, onNewNote = { screen = Screen.Edit(null) }, onSettings = { screen = Screen.Settings })
-                        is Screen.Edit -> NoteEditScreen(initial = s.note, onSave = { vm.save(it) }, onDelete = { vm.delete(it) }, onBack = { screen = Screen.List })
-                        is Screen.Settings -> SettingsScreen(onBack = { screen = Screen.List }, currentMode = themeMode, onModeChange = { themeMode = it; lifecycleScope.launch { Prefs.setThemeMode(this@MainActivity, it) } })
                     }
                 }
             }
-        }
-    }
-}
-EOF
+          EOF
 
           # 7. NoteListScreen.kt
           cat << 'EOF' > app/src/main/java/com/notebox/ui/NoteListScreen.kt
-package com.notebox.ui
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import com.notebox.data.Note
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NoteListScreen(notes: List<Note>, onNoteClick: (Note) -> Unit, onNewNote: () -> Unit, onSettings: () -> Unit) {
-    var filter by remember { mutableStateOf("All") }
-    val folders = remember(notes) { listOf("All") + notes.map { it.folder }.distinct().sorted() }
-    val visible = remember(notes, filter) { if (filter == "All") notes else notes.filter { it.folder == filter } }
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = { TopAppBar(title = { Text("~/notebox", style = MaterialTheme.typography.titleLarge) }, actions = { IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, contentDescription = "Settings") } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
-        floatingActionButton = { FloatingActionButton(onClick = onNewNote, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.background) { Icon(Icons.Default.Add, contentDescription = "New") } }
-    ) { pad ->
-        Column(Modifier.padding(pad)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                folders.forEach { f -> FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f, style = MaterialTheme.typography.labelSmall) }) }
-            }
-            if (visible.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("no notes yet", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) }
-            } else {
-                LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(visible, key = { it.id }) { note -> NoteCard(note) { onNoteClick(note) } }
+            package com.notebox.ui
+            import androidx.compose.animation.core.Spring
+            import androidx.compose.animation.core.spring
+            import androidx.compose.animation.core.tween
+            import androidx.compose.foundation.BorderStroke
+            import androidx.compose.foundation.layout.*
+            import androidx.compose.foundation.lazy.LazyColumn
+            import androidx.compose.foundation.lazy.items
+            import androidx.compose.material.icons.Icons
+            import androidx.compose.material.icons.filled.Add
+            import androidx.compose.material.icons.filled.Settings
+            import androidx.compose.material3.*
+            import androidx.compose.runtime.*
+            import androidx.compose.ui.Alignment
+            import androidx.compose.ui.Modifier
+            import androidx.compose.ui.text.style.TextOverflow
+            import androidx.compose.ui.unit.dp
+            import com.notebox.data.Note
+            @OptIn(ExperimentalMaterial3Api::class)
+            @Composable
+            fun NoteListScreen(notes: List<Note>, onNoteClick: (Note) -> Unit, onNewNote: () -> Unit, onSettings: () -> Unit) {
+                var filter by remember { mutableStateOf("All") }
+                val folders = remember(notes) { listOf("All") + notes.map { it.folder }.distinct().sorted() }
+                val visible = remember(notes, filter) { if (filter == "All") notes else notes.filter { it.folder == filter } }
+                Scaffold(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    topBar = { TopAppBar(title = { Text("~/notebox", style = MaterialTheme.typography.titleLarge) }, actions = { IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, contentDescription = "Settings") } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
+                    floatingActionButton = { FloatingActionButton(onClick = onNewNote, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.background) { Icon(Icons.Default.Add, contentDescription = "New") } }
+                ) { pad ->
+                    Column(Modifier.padding(pad)) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            folders.forEach { f -> FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f, style = MaterialTheme.typography.labelSmall) }) }
+                        }
+                        if (visible.isEmpty()) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("no notes yet", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) }
+                        } else {
+                            LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(visible, key = { it.id }) { note -> NoteCard(note) { onNoteClick(note) } }
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
-}
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun NoteCard(note: Note, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
-        modifier = Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(220), fadeOutSpec = tween(220), placementSpec = spring(stiffness = Spring.StiffnessMediumLow))
-    ) {
-        Column(Modifier.padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (note.pinned) Text("📌 ", style = MaterialTheme.typography.titleLarge)
-                Text(text = note.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            @OptIn(ExperimentalMaterial3Api::class)
+            @Composable
+            private fun NoteCard(note: Note, onClick: () -> Unit) {
+                Card(
+                    onClick = onClick,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                    modifier = Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(220), fadeOutSpec = tween(220), placementSpec = spring(stiffness = Spring.StiffnessMediumLow))
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (note.pinned) Text("📌 ", style = MaterialTheme.typography.titleLarge)
+                            Text(text = note.title.ifBlank { "(untitled)" }, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        }
+                        if (note.content.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text(text = note.content, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis) }
+                        if (note.imagePath != null) { Spacer(Modifier.height(4.dp)); Text("📎 image", style = MaterialTheme.typography.labelSmall) }
+                        Spacer(Modifier.height(6.dp))
+                        Text(text = "${note.folder}  ·  ${java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(note.updatedAt))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                    }
+                }
             }
-            if (note.content.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text(text = note.content, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis) }
-            if (note.imagePath != null) { Spacer(Modifier.height(4.dp)); Text("📎 image", style = MaterialTheme.typography.labelSmall) }
-            Spacer(Modifier.height(6.dp))
-            Text(text = "\${note.folder}  ·  \${java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(note.updatedAt))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
-        }
-    }
-}
-EOF
+          EOF
 
           # 8. NoteEditScreen.kt
           cat << 'EOF' > app/src/main/java/com/notebox/ui/NoteEditScreen.kt
-package com.notebox.ui
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
-import com.notebox.data.ImageStore
-import com.notebox.data.Note
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NoteEditScreen(initial: Note?, onSave: (Note) -> Unit, onDelete: (Note) -> Unit, onBack: () -> Unit) {
-    val context = LocalContext.current
-    var title by remember { mutableStateOf(initial?.title ?: "") }
-    var content by remember { mutableStateOf(initial?.content ?: "") }
-    var folder by remember { mutableStateOf(initial?.folder ?: "Inbox") }
-    var imageFile by remember { mutableStateOf(initial?.imagePath?.let { ImageStore.resolve(context, it) }) }
-    var bgColor by remember { mutableStateOf(initial?.customBgColor) }
-    var textColor by remember { mutableStateOf(initial?.customTextColor) }
-    var fontScale by remember { mutableStateOf(initial?.widgetFontScale ?: 1.0f) }
-    var pinned by remember { mutableStateOf(initial?.pinned ?: false) }
-    var showAppearance by remember { mutableStateOf(false) }
-    val picker = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri: Uri? -> uri ?: return@rememberLauncherForActivityResult; ImageStore.save(context, uri)?.let { imageFile = ImageStore.resolve(context, it) } })
-    fun build(): Note = (initial ?: Note()).copy(title = title.trim(), content = content, folder = folder, imagePath = imageFile?.name, customBgColor = bgColor, customTextColor = textColor, widgetFontScale = fontScale, pinned = pinned, updatedAt = System.currentTimeMillis())
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = { Text(":note", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { IconButton(onClick = { onSave(build()); onBack() }) { Icon(Icons.Default.ArrowBack, contentDescription = "Save") } },
-                actions = {
-                    if (initial != null) IconButton(onClick = { onDelete(initial); onBack() }) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
-                    IconButton(onClick = { pinned = !pinned }) { Icon(Icons.Default.PushPin, contentDescription = "Pin to widget", tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) }
-                    TextButton(onClick = { onSave(build()); onBack() }) { Text(":wq") }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        }
-    ) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding
+            package com.notebox.ui
+            import android.net.Uri
+            import androidx.activity.compose.rememberLauncherForActivityResult
+            import androidx.activity.result.PickVisualMediaRequest
+            import androidx.activity.result.contract.ActivityResultContracts
+            import androidx.compose.foundation.BorderStroke
+            import androidx.compose.foundation.Image
+            import androidx.compose.foundation.background
+            import androidx.compose.foundation.border
+            import androidx.compose.foundation.clickable
+            import androidx.compose.foundation.layout.*
+            import androidx.compose.foundation.rememberScrollState
+            import androidx.compose.foundation.text.Ba
