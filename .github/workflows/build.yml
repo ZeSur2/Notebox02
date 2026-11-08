@@ -33,7 +33,6 @@ jobs:
           mkdir -p app/src/main/res/xml
           mkdir -p app/src/main/res/layout
 
-          # Overwrite Gradle files to guarantee compatibility
           cat << 'EOF' | sed 's/^          //' > build.gradle.kts
           plugins {
               id("com.android.application") version "8.7.3" apply false
@@ -95,7 +94,6 @@ jobs:
           }
           EOF
 
-          # Overwrite all Kotlin files
           cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/data/Note.kt
           package com.notebox.data
           import androidx.compose.runtime.Immutable
@@ -264,6 +262,7 @@ jobs:
           }
           EOF
 
+          # FIXED ANIMATEITEM ERROR HERE
           cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/ui/NoteListScreen.kt
           package com.notebox.ui
           import androidx.compose.animation.core.Spring
@@ -296,7 +295,13 @@ jobs:
                       }
                       if (visible.isEmpty()) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("no notes yet", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)) } } else {
                           LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                              items(visible, key = { it.id }) { note -> NoteCard(note) { onNoteClick(note) } }
+                              items(visible, key = { it.id }) { note -> 
+                                  NoteCard(
+                                      note = note, 
+                                      onClick = { onNoteClick(note) },
+                                      modifier = Modifier.animateItem(fadeInSpec = tween(220), fadeOutSpec = tween(220), placementSpec = spring(stiffness = Spring.StiffnessMediumLow))
+                                  ) 
+                              }
                           }
                       }
                   }
@@ -304,8 +309,8 @@ jobs:
           }
           @OptIn(ExperimentalMaterial3Api::class)
           @Composable
-          private fun NoteCard(note: Note, onClick: () -> Unit) {
-              Card(onClick = onClick, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)), modifier = Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(220), fadeOutSpec = tween(220), placementSpec = spring(stiffness = Spring.StiffnessMediumLow))) {
+          private fun NoteCard(note: Note, onClick: () -> Unit, modifier: Modifier = Modifier) {
+              Card(onClick = onClick, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)), modifier = modifier.fillMaxWidth()) {
                   Column(Modifier.padding(14.dp)) {
                       Row(verticalAlignment = Alignment.CenterVertically) {
                           if (note.pinned) Text("📌 ", style = MaterialTheme.typography.titleLarge)
@@ -509,6 +514,7 @@ jobs:
           }
           EOF
 
+          # FIXED ALIGN ERROR HERE
           cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/widget/NoteBoxWidget.kt
           package com.notebox.widget
           import android.content.Context
@@ -544,19 +550,20 @@ jobs:
                   provideContent {
                       val size = LocalSize.current
                       val noteCount = when { size.height.value < 140f -> 1; size.height.value < 240f -> 2; else -> 3 }.coerceAtMost(toShow.size.coerceAtLeast(0))
-                      Box(modifier = GlanceModifier.fillMaxSize().background(ColorProvider(Color(globalBg))).padding(8.dp)) {
-                          Column(GlanceModifier.fillMaxSize()) {
-                              if (toShow.isEmpty()) {
-                                  Text("NoteBox\nno notes", style = TextStyle(fontFamily = androidx.glance.text.FontFamily.Monospace, fontSize = 13.sp, color = ColorProvider(Color(globalText))))
-                              } else {
-                                  toShow.take(noteCount.coerceAtLeast(1)).forEachIndexed { idx, note ->
-                                      NoteBlock(context, note, globalBg, globalText, size, noteCount, idx, toShow.size)
-                                      if (idx < noteCount - 1) Spacer(GlanceModifier.height(6.dp))
-                                  }
+                      Column(modifier = GlanceModifier.fillMaxSize().background(ColorProvider(Color(globalBg))).padding(8.dp)) {
+                          Row(modifier = GlanceModifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                              Box(modifier = GlanceModifier.size(24.dp).cornerRadius(12.dp).background(ColorProvider(Color(0x33FFFFFF))).clickable(actionStartActivity<WidgetEditActivity>()), contentAlignment = Alignment.Center) {
+                                  Text("⚙", style = TextStyle(fontSize = 12.sp, color = ColorProvider(Color(globalText))))
                               }
                           }
-                          Box(modifier = GlanceModifier.align(Alignment.TopEnd).size(24.dp).cornerRadius(12.dp).background(ColorProvider(Color(0x33FFFFFF))).clickable(actionStartActivity<WidgetEditActivity>()), contentAlignment = Alignment.Center) {
-                              Text("⚙", style = TextStyle(fontSize = 12.sp, color = ColorProvider(Color(globalText))))
+                          Spacer(GlanceModifier.height(4.dp))
+                          if (toShow.isEmpty()) {
+                              Text("NoteBox\nno notes", style = TextStyle(fontFamily = androidx.glance.text.FontFamily.Monospace, fontSize = 13.sp, color = ColorProvider(Color(globalText))))
+                          } else {
+                              toShow.take(noteCount.coerceAtLeast(1)).forEachIndexed { idx, note ->
+                                  NoteBlock(context, note, globalBg, globalText, size, noteCount, idx, toShow.size)
+                                  if (idx < noteCount - 1) Spacer(GlanceModifier.height(6.dp))
+                              }
                           }
                       }
                   }
