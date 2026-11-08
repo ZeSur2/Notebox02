@@ -21,10 +21,11 @@ jobs:
         run: |
           unzip -o NoteBox2.zip -d ./project
           
-      - name: Inject New Optimized Code
+      - name: Inject Optimized Code and Gradle Files
         run: |
           ROOT_DIR=$(find ./project -name "settings.gradle.kts" -exec dirname {} \; | head -n 1)
           cd "$ROOT_DIR"
+          
           mkdir -p app/src/main/java/com/notebox/data
           mkdir -p app/src/main/java/com/notebox/ui/theme
           mkdir -p app/src/main/java/com/notebox/ui
@@ -32,7 +33,70 @@ jobs:
           mkdir -p app/src/main/res/xml
           mkdir -p app/src/main/res/layout
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/data/Note.kt
+          # Overwrite Gradle files to guarantee compatibility
+          cat << 'EOF' | sed 's/^          //' > build.gradle.kts
+          plugins {
+              id("com.android.application") version "8.7.3" apply false
+              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+              id("com.google.devtools.ksp") version "2.0.21-1.0.28" apply false
+              id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false
+          }
+          EOF
+
+          cat << 'EOF' | sed 's/^          //' > app/build.gradle.kts
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+              id("com.google.devtools.ksp")
+              id("org.jetbrains.kotlin.plugin.compose")
+          }
+          android {
+              namespace = "com.notebox"
+              compileSdk = 35
+              defaultConfig {
+                  applicationId = "com.notebox"
+                  minSdk = 26
+                  targetSdk = 35
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+              buildTypes {
+                  release {
+                      isMinifyEnabled = false
+                      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+              buildFeatures { compose = true }
+          }
+          dependencies {
+              val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+              implementation(composeBom)
+              implementation("androidx.compose.material3:material3")
+              implementation("androidx.compose.material:material-icons-extended")
+              implementation("androidx.compose.ui:ui-tooling-preview")
+              debugImplementation("androidx.compose.ui:ui-tooling")
+              implementation("androidx.activity:activity-compose:1.9.3")
+              implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+              implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+              implementation("androidx.room:room-runtime:2.6.1")
+              implementation("androidx.room:room-ktx:2.6.1")
+              ksp("androidx.room:room-compiler:2.6.1")
+              implementation("androidx.datastore:datastore-preferences:1.1.1")
+              implementation("androidx.glance:glance-appwidget:1.1.1")
+              implementation("androidx.glance:glance-material3:1.1.1")
+              implementation("androidx.work:work-runtime-ktx:2.10.0")
+              implementation("io.coil-kt:coil-compose:2.7.0")
+              implementation("com.squareup.okhttp3:okhttp:4.12.0")
+          }
+          EOF
+
+          # Overwrite all Kotlin files
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/data/Note.kt
           package com.notebox.data
           import androidx.compose.runtime.Immutable
           import androidx.room.Entity
@@ -54,7 +118,7 @@ jobs:
           )
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/data/NoteDao.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/data/NoteDao.kt
           package com.notebox.data
           import androidx.room.*
           import kotlinx.coroutines.flow.Flow
@@ -77,12 +141,12 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/ui/theme/ThemeMode.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/ui/theme/ThemeMode.kt
           package com.notebox.ui.theme
           enum class ThemeMode { STANDARD, OLED, FADE }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/ui/theme/Theme.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/ui/theme/Theme.kt
           package com.notebox.ui.theme
           import androidx.compose.foundation.isSystemInDarkTheme
           import androidx.compose.material3.*
@@ -108,7 +172,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/data/Prefs.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/data/Prefs.kt
           package com.notebox.data
           import android.content.Context
           import androidx.datastore.preferences.core.*
@@ -138,7 +202,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/MainActivity.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/MainActivity.kt
           package com.notebox
           import android.app.Application
           import android.os.Bundle
@@ -200,7 +264,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/ui/NoteListScreen.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/ui/NoteListScreen.kt
           package com.notebox.ui
           import androidx.compose.animation.core.Spring
           import androidx.compose.animation.core.spring
@@ -256,7 +320,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/ui/NoteEditScreen.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/ui/NoteEditScreen.kt
           package com.notebox.ui
           import android.net.Uri
           import androidx.activity.compose.rememberLauncherForActivityResult
@@ -349,7 +413,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/ui/SettingsScreen.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/ui/SettingsScreen.kt
           package com.notebox.ui
           import androidx.compose.foundation.background
           import androidx.compose.foundation.border
@@ -425,7 +489,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/ui/ColorRow.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/ui/ColorRow.kt
           package com.notebox.ui
           import androidx.compose.foundation.background
           import androidx.compose.foundation.border
@@ -445,7 +509,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/widget/NoteBoxWidget.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/widget/NoteBoxWidget.kt
           package com.notebox.widget
           import android.content.Context
           import android.graphics.BitmapFactory
@@ -520,7 +584,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/java/com/notebox/widget/WidgetEditActivity.kt
+          cat << 'EOF' | sed 's/^          //' > app/src/main/java/com/notebox/widget/WidgetEditActivity.kt
           package com.notebox.widget
           import android.os.Bundle
           import androidx.activity.ComponentActivity
@@ -572,7 +636,7 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' | sed 's/^ *//' > app/src/main/AndroidManifest.xml
+          cat << 'EOF' | sed 's/^          //' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -599,7 +663,7 @@ jobs:
         run: |
           ROOT_DIR=$(find ./project -name "settings.gradle.kts" -exec dirname {} \; | head -n 1)
           cd "$ROOT_DIR"
-          gradle assembleDebug
+          gradle assembleDebug --stacktrace
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
